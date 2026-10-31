@@ -1,0 +1,149 @@
+.orp-status {
+    font-size: smaller;
+    opacity: 0.75;
+    margin-left: 8px;
+    font-weight: normal;
+}
+
+.orp-hint {
+    font-size: smaller;
+    opacity: 0.7;
+}
+
+.orp-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 6px 0;
+}
+
+.orp-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.orp-fieldset {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(128, 128, 128, 0.35));
+    border-radius: 6px;
+    margin: 8px 0;
+    padding: 4px 10px 8px;
+}
+
+.orp-fieldset legend {
+    font-size: 0.9em;
+    opacity: 0.85;
+    padding: 0 4px;
+}
+
+.orp-mode {
+    display: block;
+    margin: 4px 0;
+    cursor: pointer;
+}
+
+.orp-list {
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(128, 128, 128, 0.35));
+    border-radius: 6px;
+    padding: 6px;
+    margin: 6px 0;
+}
+
+.orp-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.orp-item:hover {
+    background: var(--SmartThemeQuoteColor, rgba(255, 255, 255, 0.06));
+}
+
+.orp-item .orp-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.orp-item .orp-slug {
+    opacity: 0.55;
+    font-size: 0.85em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.orp-item input:checked ~ .orp-name {
+    font-weight: 600;
+}
+
+.orp-badge {
+    min-width: 18px;
+    text-align: center;
+    background: var(--SmartThemeQuoteColor, rgba(80, 160, 120, 0.85));
+    color: var(--SmartThemeBodyColor, #fff);
+    border-radius: 9px;
+    font-size: 0.8em;
+    padding: 0 5px;
+    flex: none;
+}
+
+.orp-move {
+    margin-left: auto;
+    display: inline-flex;
+    gap: 4px;
+    flex: none;
+}
+
+.orp-move button {
+    padding: 0 7px;
+    line-height: 1.4;
+    font-size: 0.85em;
+}
+
+.orp-subtitle {
+    margin-top: 8px;
+    font-size: 0.95em;
+    opacity: 0.9;
+}
+
+.orp-quant {
+    gap: 12px;
+}
+
+.orp-details {
+    margin: 8px 0;
+}
+
+.orp-details summary {
+    cursor: pointer;
+    opacity: 0.9;
+}
+
+.orp-rules {
+    width: 100%;
+    font-family: monospace;
+    font-size: 0.9em;
+    margin-top: 6px;
+}
+
+.orp-msg {
+    font-size: smaller;
+    min-height: 1em;
+}
+
+.orp-msg.orp-ok {
+    color: #6fcf97;
+}
+
+.orp-msg.orp-err {
+    color: #eb5757;
+}

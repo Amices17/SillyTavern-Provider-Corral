@@ -1,0 +1,81 @@
+<div class="orp-panel">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>OpenRouter 提供商列表</b>
+            <span id="orp-status" class="orp-status"></span>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="orp-row">
+                <label class="orp-switch">
+                    <input type="checkbox" id="orp-enabled" />
+                    <span>启用路由注入</span>
+                </label>
+                <span class="orp-hint">把勾选的提供商以 provider.order / only 注入所有 OpenRouter 请求（含后备与量化限制）</span>
+            </div>
+
+            <fieldset class="orp-fieldset">
+                <legend>路由模式</legend>
+                <label class="orp-mode">
+                    <input type="radio" name="orp-mode" value="order" />
+                    <span>按序优先尝试（allow_fallbacks：第一家限流时 OpenRouter 自动换下一家）</span>
+                </label>
+                <label class="orp-mode">
+                    <input type="radio" name="orp-mode" value="only" />
+                    <span>仅允许列表内（only：列表外一律不用，全部不可用才报错）</span>
+                </label>
+                <label class="orp-mode">
+                    <input type="radio" name="orp-mode" value="off" />
+                    <span>不注入（沿用酒馆原生“模型提供商”选择）</span>
+                </label>
+            </fieldset>
+
+            <div class="orp-row">
+                <input type="text" id="orp-search" class="text_pole" placeholder="搜索提供商（名称或 slug）…" />
+                <button class="menu_button" id="orp-refresh" type="button">刷新目录</button>
+            </div>
+
+            <div id="orp-list" class="orp-list"></div>
+
+            <div class="orp-row">
+                <input type="text" id="orp-slug-input" class="text_pole" placeholder="手填 slug（目录里没有的家，逗号分隔）" />
+                <button class="menu_button" id="orp-slug-add" type="button">添加</button>
+            </div>
+
+            <div class="orp-subtitle">量化位数限制（不勾 = 不限制）</div>
+            <div id="orp-quant" class="orp-row orp-quant"></div>
+
+            <details class="orp-details">
+                <summary>按模型规则（glob，自上而下第一条命中生效）</summary>
+                <textarea id="orp-rules" class="text_pole orp-rules" rows="5" spellcheck="false"
+                    placeholder='[{"pattern":"xiaomi/mimo*","mode":"only","providers":["makora","xiaomi"]}]'></textarea>
+                <div id="orp-rules-msg" class="orp-msg"></div>
+                <div class="orp-hint">mode 取 inherit / only / order / off；providers 留空则继承全局列表；不含 * 时按前缀匹配。</div>
+            </details>
+
+            <details class="orp-details">
+                <summary>跨设备迁移（导出 / 导入配置）</summary>
+                <textarea id="orp-transfer" class="text_pole orp-rules" rows="4" spellcheck="false"
+                    placeholder="点“导出”把配置写到这里，复制到另一台设备粘贴后点“导入”"></textarea>
+                <div class="orp-row">
+                    <button class="menu_button" id="orp-export" type="button">导出配置</button>
+                    <button class="menu_button" id="orp-copy" type="button">复制</button>
+                    <button class="menu_button" id="orp-import" type="button">导入配置</button>
+                </div>
+            </details>
+
+            <details class="orp-details">
+                <summary>文本补全侧注入（默认关）</summary>
+                <label class="orp-switch">
+                    <input type="checkbox" id="orp-text-patch" />
+                    <span>同时注入 text-completions 请求（仅当你在文本补全模式下使用 OpenRouter 时开启）</span>
+                </label>
+            </details>
+
+            <div class="orp-row">
+                <button class="menu_button menu_button_color" id="orp-save" type="button">保存设置</button>
+                <span id="orp-dirty" class="orp-msg"></span>
+            </div>
+        </div>
+    </div>
+</div>
