@@ -1,23 +1,30 @@
 'use strict';
 
 /**
- * OpenRouter 提供商列表 (SillyTavern extension)
+ * OpenRouter 上游围栏 (SillyTavern extension: Provider Corral)
  *
- * 把 OpenRouter 官方提供商目录（实时拉取 + 24h 缓存 + 内置快照兜底）注入酒馆 UI，
- * 并把勾选结果以 provider.order / allow_fallbacks / quantizations 注入
- * chat-completions（及可选 text-completions）的 OpenRouter 请求体。
+ * 按模型规则圈定允许使用的 OpenRouter 提供商：命中规则的模型只在勾选的
+ * 上游“栏”内活动（provider.order + allow_fallbacks 注入），越栏不贷；
+ * 单选 = 死钉一家（挂了就报错），多选 = 栏内交给 OpenRouter 分配。
+ * 目录实时拉取官方端点，24h 缓存 + 内置快照兜底。
  *
  * 隐私：只向 https://openrouter.ai/api/v1/providers 发起公开目录请求，
  * 不接触、不存储、不外传任何 API 密钥；配置仅含 provider slug 列表，无遥测。
  */
 
 (() => {
-    const MODULE = 'openrouter_providers_ext';
+    const MODULE = 'provider_corral';
+    const LEGACY_MODULE = 'openrouter_providers_ext'; // 1.2.0 改名前的设置 key
     const CATALOG_URL = 'https://openrouter.ai/api/v1/providers';
-    const CACHE_KEY = 'orp_catalog_v1';
+    const CACHE_KEY = 'provider_corral_catalog_v1';
     const CACHE_TTL = 24 * 60 * 60 * 1000;      // 24 小时
     const OFFLINE_RETRY = 60 * 1000;             // 拉取失败 60 秒后重试
-    const PANEL_FOLDER = 'third-party/openrouter-providers';
+    /** 面板模板所在扩展目录（兼容手动目录名与 Git 安装目录名） */
+    const PANEL_FOLDER_CANDIDATES = [
+        'third-party/SillyTavern-Provider-Corral',
+        'third-party/provider-corral',
+        'third-party/openrouter-providers',
+    ];
 
     /** 内置快照（离线兜底），2026-10-31 拉取自官方目录，共 117 家 */
     const SNAPSHOT = [
@@ -167,7 +174,13 @@
     function getSettings() {
         const { extensionSettings } = SillyTavern.getContext();
         if (!extensionSettings[MODULE] || typeof extensionSettings[MODULE] !== 'object') {
-            extensionSettings[MODULE] = structuredClone(DEFAULTS);
+            // 1.2.0 改名：从旧 key 迁移已有配置
+            const legacy = extensionSettings[LEGACY_MODULE];
+            if (legacy && typeof legacy === 'object') {
+                extensionSettings[MODULE] = { ...structuredClone(DEFAULTS), ...structuredClone(legacy) };
+            } else {
+                extensionSettings[MODULE] = structuredClone(DEFAULTS);
+            }
         }
         const s = extensionSettings[MODULE];
         for (const key of Object.keys(DEFAULTS)) {
@@ -183,7 +196,7 @@
     function toastMsg(text, type) {
         const fn = globalThis.toast;
         if (typeof fn === 'function') fn(text, type);
-        else console.log('[OpenRouterProviders]', text);
+        else console.log('[ProviderCorral]', text);
     }
 
     // ======================= 提供商目录 =======================
@@ -231,7 +244,7 @@
             } catch { /* localStorage 满/禁用：内存缓存仍生效 */ }
             return catalogCache;
         } catch (err) {
-            console.warn('[OpenRouterProviders] 官方目录拉取失败，使用内置快照：', err?.message ?? err);
+            console.warn('[ProviderCorral] 官方目录拉取失败，使用内置快照：', err?.message ?? err);
             offlineUntil = Date.now() + OFFLINE_RETRY;
             const cachedAt = (() => {
                 try { return JSON.parse(localStorage.getItem(CACHE_KEY))?.at ?? 0; } catch { return 0; }
@@ -379,7 +392,7 @@
                     try { body = JSON.parse(init.body); } catch { body = null; }
                     if (body && typeof body === 'object' && !Array.isArray(body) && shouldPatch(url, init.method, body)) {
                         if (applyRouting(body)) {
-                            console.debug('[OpenRouterProviders] 注入:', url, {
+                            console.debug('[ProviderCorral] 注入:', url, {
                                 provider: body.provider,
                                 allow_fallbacks: body.allow_fallbacks,
                                 quantizations: body.quantizations,
@@ -389,7 +402,7 @@
                     }
                 }
             } catch (err) {
-                console.warn('[OpenRouterProviders] 注入层出错（放行原请求）:', err);
+                console.warn('[ProviderCorral] 注入层出错（放行原请求）:', err);
             }
             return prev(input, init);
         };
@@ -406,7 +419,7 @@
             console.debug(`[${realFetchHint}] 检测到其他扩展重包了 fetch，已重新抢占最外层`);
             return true;
         } catch (err) {
-            console.warn('[OpenRouterProviders] fetch 守护失败:', err);
+            console.warn('[ProviderCorral] fetch 守护失败:', err);
             return false;
         }
     }
@@ -917,7 +930,7 @@
             persist();
             setMsg(dom.rulesMsg, '', '');
             setMsg(dom.dirty, '已保存', 'ok');
-            toastMsg('OpenRouter 提供商设置已保存', 'success');
+            toastMsg('上游围栏设置已保存', 'success');
             injectNativeSelects();
         });
 
@@ -977,7 +990,7 @@
             renderQuantizationRow();
             renderList();
             setMsg(dom.dirty, '导入成功', 'ok');
-            toastMsg('OpenRouter 提供商配置已导入', 'success');
+            toastMsg('上游围栏配置已导入', 'success');
         });
     }
 
@@ -1011,20 +1024,25 @@
 
     async function mountPanel() {
         const ctx = SillyTavern.getContext();
-        try {
-            const html = await ctx.renderExtensionTemplateAsync(PANEL_FOLDER, 'settings');
-            const host = document.querySelector('#extensions_settings2') ?? document.querySelector('#extensions_settings');
-            if (!host) { console.warn('[OpenRouterProviders] 找不到扩展面板挂载点'); return; }
-            // 防重复挂载（页面热重载时）
-            host.querySelector('.orp-panel')?.remove();
-            const holder = document.createElement('div');
-            holder.innerHTML = html;
-            const panel = holder.firstElementChild ?? holder;
-            host.append(panel);
-            bindPanel(panel);
-        } catch (err) {
-            console.error('[OpenRouterProviders] 面板挂载失败:', err);
+        const host = document.querySelector('#extensions_settings2') ?? document.querySelector('#extensions_settings');
+        if (!host) { console.warn('[ProviderCorral] 找不到扩展面板挂载点'); return; }
+
+        for (const folder of PANEL_FOLDER_CANDIDATES) {
+            try {
+                const html = await ctx.renderExtensionTemplateAsync(folder, 'settings');
+                // 防重复挂载（页面热重载时）
+                host.querySelector('.orp-panel')?.remove();
+                const holder = document.createElement('div');
+                holder.innerHTML = html;
+                const panel = holder.firstElementChild ?? holder;
+                host.append(panel);
+                bindPanel(panel);
+                return;
+            } catch (err) {
+                console.debug(`[ProviderCorral] 模板 ${folder} 未命中，试下一个`, err?.message ?? '');
+            }
         }
+        console.warn('[ProviderCorral] 面板模板未在任何候选目录中找到');
     }
 
     // ======================= 生命周期 =======================
@@ -1034,7 +1052,7 @@
         try {
             await injectNativeSelects();
         } catch (err) {
-            console.warn('[OpenRouterProviders] 原生下拉注入失败:', err);
+            console.warn('[ProviderCorral] 原生下拉注入失败:', err);
         }
         await mountPanel();
         // 拉一次官方目录（异步，不阻塞面板；成功后补进原生下拉）

@@ -1,13 +1,13 @@
 {
-	"display_name": "OpenRouter 提供商列表",
+	"display_name": "OpenRouter 上游围栏",
 	"loading_order": 9999,
 	"requires": [],
 	"optional": [],
 	"js": "index.js",
 	"css": "style.css",
-	"author": "xie-mei",
-	"version": "1.1.0",
-	"homePage": "https://github.com/Amices17/SillyTavern-OpenRouter-Providers",
+	"author": "Amices17",
+	"version": "1.2.0",
+	"homePage": "https://github.com/Amices17/SillyTavern-Provider-Corral",
 	"auto_update": true,
 	"minimum_client_version": "1.12.0"
 }
