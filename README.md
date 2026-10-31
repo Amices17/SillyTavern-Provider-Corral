@@ -1,5 +1,7 @@
 # SillyTavern-Provider-Corral
 
+**中文** | [English](README.en.md)
+
 按模型圈上游的「围栏」：每个模型按自己的规则命中一个**上游围栏**——勾了哪几家就只准走哪几家，**越栏不贷**；单选 = 死钉那家（限流/不可用也不换，报错拉倒），多选 = 栏内交给 OpenRouter 自行分配。围栏参数以 `provider.order` / `allow_fallbacks` / `provider.quantizations` 注入所有 OpenRouter 请求——限流时 OpenRouter 自动按你的顺序换下一家，酒馆全程无感。
 
 内置快照 **117 家**（2026-10-31 拉取），并会实时刷新官方目录，酒馆自带的硬编码列表里缺的新家这里都有。
@@ -29,8 +31,8 @@ https://github.com/Amices17/SillyTavern-Provider-Corral
 装完刷新页面，面板在 **扩展程序** 设置区的「OpenRouter 上游围栏」抽屉里。`auto_update: true`，酒馆会随仓库更新自动升级。
 
 手动安装（开发）：把本目录（含 `manifest.json`）放到酒馆的
-`public/scripts/extensions/third-party/openrouter-providers/`（全局，刷新即生效），
-或 `data/<用户名>/extensions/openrouter-providers/`（用户级，需重启酒馆服务生效）。
+`public/scripts/extensions/third-party/SillyTavern-Provider-Corral/`（全局，刷新即生效），
+或 `data/<用户名>/extensions/SillyTavern-Provider-Corral/`（用户级，需重启酒馆服务生效）。
 
 > **二选一**：手动安装过就别再走 Git URL 安装（反之亦然），两处并存会重复加载；换安装方式前先删掉旧目录。
 
