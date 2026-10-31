@@ -15,7 +15,7 @@
             </div>
 
             <fieldset class="orp-fieldset">
-                <legend>路由模式</legend>
+                <legend>路由模式（全局默认）</legend>
                 <label class="orp-mode">
                     <input type="radio" name="orp-mode" value="order" />
                     <span>按序优先尝试（allow_fallbacks：第一家限流时 OpenRouter 自动换下一家）</span>
@@ -30,37 +30,45 @@
                 </label>
             </fieldset>
 
+            <div class="orp-subtitle">提供商（provider slug）</div>
+            <div class="orp-hint">全局默认列表：在下方目录中勾选，或手动添加自定义 slug。留空 = 全局不注入（仅按模型规则生效）。</div>
+
             <div class="orp-row">
                 <input type="text" id="orp-search" class="text_pole" placeholder="搜索提供商（名称或 slug）…" />
                 <button class="menu_button" id="orp-refresh" type="button">刷新目录</button>
             </div>
 
+            <div class="orp-listhead">
+                <span id="orp-count" class="orp-count">已选 0 个</span>
+                <button class="menu_button orp-shrink" id="orp-clear" type="button">清空</button>
+            </div>
+
             <div id="orp-list" class="orp-list"></div>
 
             <div class="orp-row">
-                <input type="text" id="orp-slug-input" class="text_pole" placeholder="手填 slug（目录里没有的家，逗号分隔）" />
-                <button class="menu_button" id="orp-slug-add" type="button">添加</button>
+                <input type="text" id="orp-slug-input" class="text_pole" placeholder="自定义 slug（目录里没有的家，逗号分隔）" />
+                <button class="menu_button orp-shrink" id="orp-slug-add" type="button">添加</button>
             </div>
 
             <div class="orp-subtitle">量化位数限制（不勾 = 不限制）</div>
             <div id="orp-quant" class="orp-row orp-quant"></div>
 
-            <details class="orp-details">
-                <summary>按模型规则（glob，自上而下第一条命中生效）</summary>
-                <textarea id="orp-rules" class="text_pole orp-rules" rows="5" spellcheck="false"
-                    placeholder='[{"pattern":"xiaomi/mimo*","mode":"only","providers":["makora","xiaomi"]}]'></textarea>
-                <div id="orp-rules-msg" class="orp-msg"></div>
-                <div class="orp-hint">mode 取 inherit / only / order / off；providers 留空则继承全局列表；不含 * 时按前缀匹配。</div>
-            </details>
+            <div class="orp-subtitle">按模型规则（可选，自上而下第一条命中生效）</div>
+            <div class="orp-hint">支持 * 通配；不含 * 时按前缀/命名空间匹配（如 xiaomi 命中 xiaomi/mimo-v2.6-flash）。命中后该模型改用规则的模式与提供商；规则提供商留空 = 继承全局列表；模式选“跳过注入”= 该模型不做任何注入。</div>
+            <div id="orp-rules-cards"></div>
+            <div class="orp-row">
+                <button class="menu_button orp-shrink" id="orp-rule-add" type="button">＋ 添加规则</button>
+                <span id="orp-rules-msg" class="orp-msg"></span>
+            </div>
 
             <details class="orp-details">
                 <summary>跨设备迁移（导出 / 导入配置）</summary>
                 <textarea id="orp-transfer" class="text_pole orp-rules" rows="4" spellcheck="false"
                     placeholder="点“导出”把配置写到这里，复制到另一台设备粘贴后点“导入”"></textarea>
                 <div class="orp-row">
-                    <button class="menu_button" id="orp-export" type="button">导出配置</button>
-                    <button class="menu_button" id="orp-copy" type="button">复制</button>
-                    <button class="menu_button" id="orp-import" type="button">导入配置</button>
+                    <button class="menu_button orp-shrink" id="orp-export" type="button">导出配置</button>
+                    <button class="menu_button orp-shrink" id="orp-copy" type="button">复制</button>
+                    <button class="menu_button orp-shrink" id="orp-import" type="button">导入配置</button>
                 </div>
             </details>
 
@@ -73,7 +81,7 @@
             </details>
 
             <div class="orp-row">
-                <button class="menu_button menu_button_color" id="orp-save" type="button">保存设置</button>
+                <button class="menu_button menu_button_color orp-shrink" id="orp-save" type="button">保存设置</button>
                 <span id="orp-dirty" class="orp-msg"></span>
             </div>
         </div>

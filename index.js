@@ -417,11 +417,14 @@
 
     const dom = {}; // 面板元素缓存
 
-    function validateRules(text) {
-        const trimmed = String(text ?? '').trim();
-        if (!trimmed) return { ok: true, rules: [] };
-        let parsed;
-        try { parsed = JSON.parse(trimmed); } catch (e) { return { ok: false, error: 'JSON 解析失败: ' + e.message }; }
+    function validateRules(input) {
+        let parsed = input;
+        if (typeof input === 'string') {
+            const trimmed = input.trim();
+            if (!trimmed) return { ok: true, rules: [] };
+            try { parsed = JSON.parse(trimmed); } catch (e) { return { ok: false, error: 'JSON 解析失败: ' + e.message }; }
+        }
+        if (parsed === undefined || parsed === null) return { ok: true, rules: [] };
         if (!Array.isArray(parsed)) return { ok: false, error: '规则必须是数组 []' };
         for (const [i, r] of parsed.entries()) {
             if (!r || typeof r !== 'object') return { ok: false, error: `第 ${i + 1} 项不是对象` }; // 中文序数用 i+1
@@ -569,6 +572,250 @@
             empty.textContent = '没有匹配的提供商';
             dom.list.append(empty);
         }
+
+        const countEl = dom.count ?? document.querySelector('#orp-count');
+        if (countEl) countEl.textContent = `已选 ${cfg.providers.length} 个`;
+    }
+
+    // ======================= 按模型规则卡片 =======================
+
+    const RULE_MODE_OPTIONS = [
+        ['inherit', '跟随全局模式'],
+        ['order', '按序优先（order + 后备）'],
+        ['only', '仅允许规则提供商 (only)'],
+        ['off', '跳过注入（不限制）'],
+    ];
+
+    const getRuleProviders = card => {
+        try {
+            const arr = JSON.parse(card.dataset.providers || '[]');
+            return Array.isArray(arr) ? arr.map(String) : [];
+        } catch { return []; }
+    };
+    const setRuleProviders = (card, arr) => { card.dataset.providers = JSON.stringify(arr); };
+
+    function markDirty(text = '有未保存的修改') {
+        setMsg(dom.dirty, text, '');
+    }
+
+    async function renderRuleProvidersInCard(card) {
+        const listEl = card.querySelector('.orp-rule-list');
+        if (!listEl) return;
+        const { items } = await getDisplayItems();
+        const query = (card.querySelector('.orp-rule-search')?.value ?? '').trim().toLowerCase();
+        const selected = getRuleProviders(card);
+        const selectedSet = new Set(selected);
+
+        const rest = items.filter(p => !selectedSet.has(p.slug)).sort((a, b) => a.name.localeCompare(b.name));
+        const ordered = [
+            ...selected.map(slug => items.find(p => p.slug === slug) ?? { slug, name: slug }),
+            ...rest,
+        ].filter(p => !query || p.slug.toLowerCase().includes(query) || p.name.toLowerCase().includes(query));
+
+        listEl.textContent = '';
+        for (const item of ordered) {
+            const idx = selected.indexOf(item.slug);
+            const row = document.createElement('label');
+            row.className = 'orp-item';
+            row.dataset.slug = item.slug;
+
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = idx >= 0;
+
+            const badge = document.createElement('span');
+            badge.className = 'orp-badge';
+            badge.textContent = idx >= 0 ? String(idx + 1) : '';
+            badge.style.visibility = idx >= 0 ? 'visible' : 'hidden';
+
+            const name = document.createElement('span');
+            name.className = 'orp-name';
+            name.textContent = item.name;
+
+            const slug = document.createElement('span');
+            slug.className = 'orp-slug';
+            slug.textContent = item.slug;
+
+            row.append(cb, badge, name, slug);
+
+            if (idx >= 0) {
+                const move = document.createElement('span');
+                move.className = 'orp-move';
+                const up = document.createElement('button');
+                up.type = 'button';
+                up.className = 'menu_button';
+                up.textContent = '↑';
+                up.title = '提高优先级';
+                const down = document.createElement('button');
+                down.type = 'button';
+                down.className = 'menu_button';
+                down.textContent = '↓';
+                down.title = '降低优先级';
+
+                up.addEventListener('click', e => {
+                    e.preventDefault();
+                    const s = getRuleProviders(card);
+                    const i = s.indexOf(item.slug);
+                    if (i > 0) {
+                        [s[i - 1], s[i]] = [s[i], s[i - 1]];
+                        setRuleProviders(card, s);
+                        renderRuleProvidersInCard(card);
+                        markDirty();
+                    }
+                });
+                down.addEventListener('click', e => {
+                    e.preventDefault();
+                    const s = getRuleProviders(card);
+                    const i = s.indexOf(item.slug);
+                    if (i >= 0 && i < s.length - 1) {
+                        [s[i + 1], s[i]] = [s[i], s[i + 1]];
+                        setRuleProviders(card, s);
+                        renderRuleProvidersInCard(card);
+                        markDirty();
+                    }
+                });
+                move.append(up, down);
+                row.append(move);
+            }
+
+            cb.addEventListener('change', () => {
+                const s = getRuleProviders(card);
+                if (cb.checked) {
+                    if (!s.includes(item.slug)) s.push(item.slug);
+                } else {
+                    const i = s.indexOf(item.slug);
+                    if (i >= 0) s.splice(i, 1);
+                }
+                setRuleProviders(card, s);
+                renderRuleProvidersInCard(card);
+                markDirty();
+            });
+
+            listEl.append(row);
+        }
+
+        const countEl = card.querySelector('.orp-rule-count');
+        if (countEl) countEl.textContent = `已选 ${selected.length} 个`;
+    }
+
+    function buildRuleCard(rule = {}) {
+        const card = document.createElement('div');
+        card.className = 'orp-rule-card';
+        setRuleProviders(card, Array.isArray(rule.providers) ? rule.providers.map(String) : []);
+
+        const head = document.createElement('div');
+        head.className = 'orp-rule-head';
+
+        const pattern = document.createElement('input');
+        pattern.type = 'text';
+        pattern.className = 'text_pole orp-rule-pattern';
+        pattern.placeholder = '模型匹配，如 xiaomi/mimo* 或 anthropic';
+        pattern.value = typeof rule.pattern === 'string' ? rule.pattern : '';
+        pattern.addEventListener('input', () => markDirty());
+
+        const mode = document.createElement('select');
+        mode.className = 'orp-rule-mode';
+        const initialMode = ['inherit', 'order', 'only', 'off'].includes(rule.mode) ? rule.mode : 'inherit';
+        for (const [value, label] of RULE_MODE_OPTIONS) {
+            const opt = new Option(label, value);
+            if (value === initialMode) opt.selected = true;
+            mode.add(opt);
+        }
+        mode.addEventListener('change', () => markDirty());
+
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'menu_button orp-rule-del';
+        del.textContent = '×';
+        del.title = '删除该规则';
+        del.addEventListener('click', () => {
+            card.remove();
+            markDirty('已删除一条规则，记得保存');
+        });
+
+        head.append(pattern, mode, del);
+
+        const label = document.createElement('div');
+        label.className = 'orp-rule-label';
+        label.textContent = '规则提供商（留空 = 继承全局）';
+
+        const search = document.createElement('input');
+        search.type = 'text';
+        search.className = 'text_pole orp-rule-search';
+        search.placeholder = '搜索提供商（名称或 slug）…';
+        search.addEventListener('input', () => renderRuleProvidersInCard(card));
+
+        const headRow = document.createElement('div');
+        headRow.className = 'orp-listhead';
+        const count = document.createElement('span');
+        count.className = 'orp-rule-count orp-count';
+        count.textContent = '已选 0 个';
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'menu_button orp-shrink';
+        clear.textContent = '清空';
+        clear.addEventListener('click', () => {
+            setRuleProviders(card, []);
+            renderRuleProvidersInCard(card);
+            markDirty();
+        });
+        headRow.append(count, clear);
+
+        const list = document.createElement('div');
+        list.className = 'orp-list orp-rule-list';
+
+        const slugRow = document.createElement('div');
+        slugRow.className = 'orp-row';
+        const slugInput = document.createElement('input');
+        slugInput.type = 'text';
+        slugInput.className = 'text_pole';
+        slugInput.placeholder = '自定义 slug（逗号分隔）';
+        const slugAdd = document.createElement('button');
+        slugAdd.type = 'button';
+        slugAdd.className = 'menu_button orp-shrink';
+        slugAdd.textContent = '添加';
+        const slugAddFn = () => {
+            const slugs = String(slugInput.value ?? '').split(/[\s,，;；]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+            if (!slugs.length) { markDirty('先输入要添加的 slug'); return; }
+            const s = getRuleProviders(card);
+            let added = 0;
+            for (const slug of slugs) {
+                if (!s.includes(slug)) { s.push(slug); added++; }
+            }
+            setRuleProviders(card, s);
+            slugInput.value = '';
+            if (search) search.value = '';
+            renderRuleProvidersInCard(card);
+            markDirty(added ? `已添加 ${added} 家到该规则` : '这些 slug 已在规则里');
+        };
+        slugAdd.addEventListener('click', slugAddFn);
+        slugInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); slugAddFn(); } });
+        slugRow.append(slugInput, slugAdd);
+
+        card.append(head, label, search, headRow, list, slugRow);
+        renderRuleProvidersInCard(card);
+        return card;
+    }
+
+    function renderRuleCards(rules) {
+        const host = document.querySelector('#orp-rules-cards');
+        if (!host) return;
+        host.textContent = '';
+        const list = Array.isArray(rules) ? rules : [];
+        for (const rule of list) host.append(buildRuleCard(rule));
+    }
+
+    function collectRulesFromCards() {
+        const cards = [...document.querySelectorAll('#orp-rules-cards .orp-rule-card')];
+        const rules = [];
+        const errors = [];
+        for (const [i, card] of cards.entries()) {
+            const pattern = (card.querySelector('.orp-rule-pattern')?.value ?? '').trim();
+            const mode = card.querySelector('.orp-rule-mode')?.value ?? 'inherit';
+            if (!pattern) { errors.push(`第 ${i + 1} 条规则的匹配串是空的`); continue; }
+            rules.push({ pattern, mode, providers: getRuleProviders(card) });
+        }
+        return { rules, errors };
     }
 
     function syncFormFromSettings() {
@@ -577,9 +824,9 @@
         for (const radio of document.querySelectorAll('input[name="orp-mode"]')) {
             radio.checked = radio.value === cfg.mode;
         }
-        if (dom.rules) dom.rules.value = JSON.stringify(cfg.modelRules ?? [], null, 2);
         if (dom.textPatch) dom.textPatch.checked = Boolean(cfg.patchTextCompletion);
         if (dom.dirty) dom.dirty.textContent = '';
+        renderRuleCards(cfg.modelRules);
     }
 
     function bindPanel(root) {
@@ -589,8 +836,8 @@
         dom.search = $id('orp-search');
         dom.list = $id('orp-list');
         dom.quant = $id('orp-quant');
-        dom.rules = $id('orp-rules');
         dom.rulesMsg = $id('orp-rules-msg');
+        dom.count = $id('orp-count');
         dom.dirty = $id('orp-dirty');
         dom.transfer = $id('orp-transfer');
         dom.textPatch = $id('orp-text-patch');
@@ -633,28 +880,39 @@
             }
         });
 
-        root.querySelector('#orp-slug-add')?.addEventListener('click', () => {
-            const input = dom.slugInput || $id('orp-slug-input');
+        const slugAddFn = () => {
+            const input = $id('orp-slug-input');
             const slugs = String(input?.value ?? '').split(/[\s,，;；]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
-            if (!slugs.length) return;
+            if (!slugs.length) { setMsg(dom.dirty, '先输入要添加的 slug', 'err'); return; }
             const s = getSettings();
             let added = 0;
             for (const slug of slugs) {
                 if (!s.providers.includes(slug)) { s.providers.push(slug); added++; }
             }
             input.value = '';
+            if (dom.search) dom.search.value = ''; // 清掉搜索过滤，保证新项立刻可见
             persist();
             renderList();
-            setMsg(dom.dirty, `已添加 ${added} 家`, 'ok');
+            setMsg(dom.dirty, added ? `已添加 ${added} 家` : '这些 slug 已在列表里', added ? 'ok' : '');
+            if (added) toastMsg(`已添加 ${added} 家提供商`, 'success');
+        };
+        root.querySelector('#orp-slug-add')?.addEventListener('click', slugAddFn);
+        $id('orp-slug-input')?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); slugAddFn(); }
         });
 
         root.querySelector('#orp-save')?.addEventListener('click', () => {
-            const result = validateRules(dom.rules?.value);
-            if (!result.ok) {
-                setMsg(dom.rulesMsg, result.error, 'err');
+            const { rules, errors } = collectRulesFromCards();
+            if (errors.length) {
+                setMsg(dom.rulesMsg, errors[0], 'err');
                 return;
             }
-            getSettings().modelRules = result.rules;
+            const check = validateRules(rules);
+            if (!check.ok) {
+                setMsg(dom.rulesMsg, check.error, 'err');
+                return;
+            }
+            getSettings().modelRules = check.rules;
             getSettings().patchTextCompletion = Boolean(dom.textPatch?.checked);
             persist();
             setMsg(dom.rulesMsg, '', '');
@@ -663,7 +921,21 @@
             injectNativeSelects();
         });
 
-        dom.rules?.addEventListener('input', () => setMsg(dom.dirty, '有未保存的修改', ''));
+        root.querySelector('#orp-rule-add')?.addEventListener('click', () => {
+            const host = document.querySelector('#orp-rules-cards');
+            if (!host) return;
+            const card = buildRuleCard({ mode: 'inherit' });
+            host.append(card);
+            card.querySelector('.orp-rule-pattern')?.focus();
+            markDirty('已添加一条规则，填好后点“保存设置”');
+        });
+
+        root.querySelector('#orp-clear')?.addEventListener('click', () => {
+            getSettings().providers = [];
+            persist();
+            renderList();
+            setMsg(dom.dirty, '已清空全局提供商列表', 'ok');
+        });
 
         dom.textPatch?.addEventListener('change', () => {
             getSettings().patchTextCompletion = Boolean(dom.textPatch.checked);
@@ -690,7 +962,7 @@
             try { data = JSON.parse(text); } catch (e) { setMsg(dom.dirty, 'JSON 解析失败: ' + e.message, 'err'); return; }
             if (!data || typeof data !== 'object' || Array.isArray(data)) { setMsg(dom.dirty, '配置必须是对象', 'err'); return; }
 
-            const rulesCheck = validateRules(JSON.stringify(data.modelRules ?? []));
+            const rulesCheck = validateRules(Array.isArray(data.modelRules) ? data.modelRules : []);
             if (!rulesCheck.ok) { setMsg(dom.dirty, '规则校验失败: ' + rulesCheck.error, 'err'); return; }
 
             const s = getSettings();

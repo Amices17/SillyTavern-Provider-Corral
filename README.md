@@ -1,19 +1,19 @@
 # SillyTavern-OpenRouter-Providers
 
-酒馆（SillyTavern）版的 [dsh-openrouter-providers](https://github.com/MoRanYue/dsh-openrouter-providers)：从 **OpenRouter 官方目录**勾选请求允许使用的提供商，按 `provider.order` / `allow_fallbacks` / `provider.quantizations` 路由参数注入所有 OpenRouter 请求——限流时 OpenRouter 自动按你的顺序换下一家，酒馆全程无感。
+从 **OpenRouter 官方目录**勾选请求允许使用的提供商，按 `provider.order` / `allow_fallbacks` / `provider.quantizations` 路由参数注入所有 OpenRouter 请求——限流时 OpenRouter 自动按你的顺序换下一家，酒馆全程无感。
 
 内置快照 **117 家**（2026-10-31 拉取），并会实时刷新官方目录，酒馆自带的硬编码列表里缺的新家这里都有。
 
 ## 功能
 
 - **官方实时目录**：拉取 `https://openrouter.ai/api/v1/providers`，24 小时缓存；拉取失败回退内置快照并标注「离线或未刷新」，60 秒后自动重试（不会丢已有选择）。
-- **可搜索勾选列表**：已选项按优先级置顶并编号，↑↓ 调整顺序；目录里没有的家可以手填 slug（选中项即使不在目录里也始终显示）。
+- **可搜索勾选列表**：已选计数 + 一键清空；已选项按优先级置顶并编号，↑↓ 调整顺序；目录里没有的家可以手填 slug（选中项即使不在目录里也始终显示，回车也能添加）。
 - **三种路由模式**：
   - **按序优先尝试**（`order` + `allow_fallbacks: true`）——第一家限流/宕机时 OpenRouter 自动切下一家，**这是解决限流的核心开关**；
   - **仅允许列表内**（`only` + `allow_fallbacks: false`）——列表外一律不用；
   - **不注入**——沿用酒馆原生「模型提供商」选择。
 - **量化位数限制**：`provider.quantizations`（选项动态读取酒馆原生下拉，与酒馆版本保持一致）。
-- **按模型规则**：glob 规则让不同模型走不同提供商，自上而下第一条命中生效，语义与 dsh-openrouter-providers 一致。
+- **按模型规则（卡片式编辑器）**：点「＋ 添加规则」逐条配置——模型匹配串 + 模式下拉 + 该规则专属的提供商勾选（独立搜索 / 手填 slug / 优先级排序 / 清空），自上而下第一条命中生效，随「保存设置」一次落盘。
 - **原生下拉同步**：官方目录全量追加进酒馆自带的「模型提供商」下拉（`#openrouter_providers_chat` / `#openrouter_providers_text`），不开本面板也能选到新家。
 - **跨设备迁移**：一键导出 / 导入配置 JSON，电脑配好拷到手机（Termux）即用。
 - **文本补全侧注入**（默认关）：同时作用于 `text-completions` 请求，仅在文本补全模式使用 OpenRouter 时开启。
@@ -40,7 +40,7 @@ https://github.com/Amices17/SillyTavern-OpenRouter-Providers
 2. 打开面板 → 勾选想要的提供商（顺序即优先级）→ 模式选 **按序优先尝试** → 保存。
 3. 之后每条 OpenRouter 请求都会携带 `provider: { order: [...], allow_fallbacks: true }`，哪家限流 OpenRouter 自己换，不再报错打断你。
 
-按模型规则示例（面板「按模型规则」JSON）：
+按模型规则：面板里点「＋ 添加规则」逐条配置即可，各字段含义如下（导出配置中的 `modelRules` 与之同构）：
 
 ```json
 [

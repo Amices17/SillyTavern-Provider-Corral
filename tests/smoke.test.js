@@ -38,12 +38,15 @@ assert.strictEqual(matchRule('aab/c', [{ pattern: 'a+b*' }]), null);
 assert.strictEqual(matchRule('any', []), null);
 assert.strictEqual(matchRule('any', [{ pattern: '' }]), null);
 
-// ---- validateRules ----
-function validateRules(text) {
-    const trimmed = String(text ?? '').trim();
-    if (!trimmed) return { ok: true, rules: [] };
-    let parsed;
-    try { parsed = JSON.parse(trimmed); } catch (e) { return { ok: false, error: 'JSON 解析失败: ' + e.message }; }
+// ---- validateRules（与新版 index.js 同构：支持数组与字符串双入参）----
+function validateRules(input) {
+    let parsed = input;
+    if (typeof input === 'string') {
+        const trimmed = input.trim();
+        if (!trimmed) return { ok: true, rules: [] };
+        try { parsed = JSON.parse(trimmed); } catch (e) { return { ok: false, error: 'JSON 解析失败: ' + e.message }; }
+    }
+    if (parsed === undefined || parsed === null) return { ok: true, rules: [] };
     if (!Array.isArray(parsed)) return { ok: false, error: '规则必须是数组 []' };
     for (const [i, r] of parsed.entries()) {
         if (!r || typeof r !== 'object') return { ok: false, error: `第 ${i + 1} 项不是对象` };
@@ -60,6 +63,12 @@ assert.strictEqual(validateRules('not json').ok, false);
 assert.strictEqual(validateRules('{"a":1}').ok, false);
 assert.strictEqual(validateRules('[{"pattern":"x","mode":"banana"}]').ok, false);
 assert.strictEqual(validateRules('[{"mode":"only"}]').ok, false);
+// 数组直入（卡片收集路径）与空入参
+assert.strictEqual(validateRules([{ pattern: 'xiaomi/mimo*', mode: 'only', providers: ['makora', 'xiaomi'] }]).ok, true);
+assert.strictEqual(validateRules(undefined).ok, true);
+assert.strictEqual(validateRules(null).ok, true);
+assert.strictEqual(validateRules([{ pattern: '', mode: 'only' }]).ok, false);
+assert.strictEqual(validateRules([{ pattern: 'x', providers: 'oops' }]).ok, false);
 
 // ---- 路由注入决策（applyRouting + shouldPatch 同构）----
 const cfg = { enabled: true, mode: 'order', providers: ['deepseek', 'xiaomi', 'novita'], quantizations: [], modelRules: [], patchTextCompletion: false };

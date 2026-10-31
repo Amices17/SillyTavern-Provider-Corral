@@ -18,6 +18,22 @@
     margin: 6px 0;
 }
 
+/* 输入框可伸缩，按钮永远保持自然宽度（修复竖条挤压） */
+.orp-row > input.text_pole,
+.orp-rule-head > input.text_pole {
+    flex: 1 1 180px;
+    min-width: 0;
+}
+
+.orp-row > button,
+.orp-listhead > button,
+.orp-rule-head > button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    width: auto;
+    min-width: fit-content;
+}
+
 .orp-switch {
     display: inline-flex;
     align-items: center;
@@ -43,6 +59,24 @@
     display: block;
     margin: 4px 0;
     cursor: pointer;
+}
+
+.orp-subtitle {
+    margin-top: 10px;
+    font-size: 0.95em;
+    opacity: 0.9;
+}
+
+.orp-listhead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 0;
+}
+
+.orp-count {
+    font-size: smaller;
+    opacity: 0.85;
 }
 
 .orp-list {
@@ -107,16 +141,57 @@
     padding: 0 7px;
     line-height: 1.4;
     font-size: 0.85em;
-}
-
-.orp-subtitle {
-    margin-top: 8px;
-    font-size: 0.95em;
-    opacity: 0.9;
+    white-space: nowrap;
 }
 
 .orp-quant {
     gap: 12px;
+}
+
+/* ---------- 按模型规则卡片 ---------- */
+
+.orp-rule-card {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(128, 128, 128, 0.4));
+    border-radius: 6px;
+    padding: 8px;
+    margin: 8px 0;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.12));
+}
+
+.orp-rule-head {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.orp-rule-head > input.text_pole {
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
+.orp-rule-head select {
+    flex: 0 0 auto;
+    max-width: 220px;
+}
+
+.orp-rule-del {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    width: auto;
+    line-height: 1.4;
+    padding: 0 9px;
+}
+
+.orp-rule-label {
+    font-size: smaller;
+    opacity: 0.8;
+    margin: 6px 0 2px;
+}
+
+.orp-rule-card .orp-list {
+    max-height: 200px;
+    margin: 4px 0;
 }
 
 .orp-details {

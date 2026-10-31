@@ -6,7 +6,7 @@
 	"js": "index.js",
 	"css": "style.css",
 	"author": "xie-mei",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"homePage": "https://github.com/Amices17/SillyTavern-OpenRouter-Providers",
 	"auto_update": true,
 	"minimum_client_version": "1.12.0"
